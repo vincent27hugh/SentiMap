@@ -201,12 +201,52 @@ summary(favorite_count)
 summary(sentiment)
 table(sentiment)
 
+jpeg("sentiment_hist.jpeg")
+hist(sentiment, freq=F, main="Sentiment Histogram", breaks=seq(from=-12.5,to=9.5,by=1), col=c(2,3), xlab="Sentiment")
+# Add the line of density, "col" for color, "lwd" for line width
+lines(density(sentiment),col=2,lwd=3)
+dev.off()
 #==============
 # Followers count
 #==============
+# use the excellent fitdistrplus package which offers some nice functions for distribution fitting. We will use the functiondescdist to gain some ideas about possible candidate distributions.
 summary(followers_count)
+quantile(followers_count)
+
+followers_count2<-log(followers_count[followers_count!=0])
+summary(followers_count2)
+quantile(followers_count2)
+
+install.packages("fitdistrplus")
+library(fitdistrplus)
+install.packages("logspline")
+library(logspline)
+#
+jpeg("CF_graph.jpeg")
+descdist(followers_count, discrete = FALSE)
+dev.off()
+#
+jpeg("CF_graph2.jpeg")
+descdist(followers_count2, discrete = FALSE)
+dev.off()
+#
+jpeg("log_folloer_count_hist.jpeg")
+hist(followers_count2, freq=F, main="Sentiment Histogram", breaks=seq(from=0,to=15,by=1), col=c(2,3), xlab="log(#Follower)")
+# Add the line of density, "col" for color, "lwd" for line width
+lines(density(followers_count2),col=2,lwd=3)
+dev.off()
+
+fit.norm <- fitdist(followers_count2, "norm")
+plot(fit.norm)
+
 # percentage of followers number that exceeds 1000
-sum(followers_count>5000)/Num
+sum(followers_count>1000)/Num
+
+
+boxplot(followers_count)
+hist(followers_count, freq=F, main="Follower Count Histogram", col=c(2,3), xlab="Sentiment")
+# Add the line of density, "col" for color, "lwd" for line width
+lines(density(followers_count),col=2,lwd=3)
 
 
 summary(statuses_count)
@@ -241,8 +281,9 @@ library(ggmap)
 #library(tidyverse)
 # Check the version info of ggmap
 #sessionInfo()
-Num = 10
-
+temp <-time_zone[geo_enabled == "True"]
+ntime_zone <-temp[temp!=""]
+Num = length(ntime_zone)
 # Initialize the data frame
 lon <- vector(mode="numeric", length=Num)
 lat <- vector(mode="numeric", length=Num)
@@ -252,14 +293,14 @@ geoAddress <- vector(mode="character", length=Num)
 #for(i in 1:Num)
 for(i in 1:Num)
 {
-  result <- tryCatch(geocode(time_zone[i], output = "latlona", source = "google"),
+  result <- tryCatch(geocode(ntime_zone[i], output = "latlona", source = "google"),
                      warning = function(w) data.frame(lon = NA, lat = NA, address = NA))
   lon[i] <- as.numeric(result[1])
   lat[i] <- as.numeric(result[2])
   geoAddress[i] <- as.character(result[3])
 }
 
-geocoded <- data.frame(lon, lat, geoAddress)
+geocoded <- data.frame(ntime_zone, lon, lat, geoAddress)
 
 #==============
 # Save geographical data
@@ -273,6 +314,11 @@ write.csv(geocoded, "geocoded.csv", row.names=FALSE)
 #==============
 #install.packages("rworldmap")
 library(rworldmap)
-newmap <- getMap(resolution = "low")
-plot(newmap, xlim = c(-20, 59), ylim = c(35, 71), asp = 1)
+# high quality plot need rworldxtra package
+#install.packages("rworldxtra")
+library(rworldxtra)
+newmap <- getMap(resolution = "high")
+jpeg('geoplot.jpeg')
+plot(newmap, asp = 1)
 points(geocoded$lon, geocoded$lat, col = "red", cex = .6)
+dev.off()

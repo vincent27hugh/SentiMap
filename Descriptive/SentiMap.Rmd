@@ -14,46 +14,88 @@ knitr::opts_chunk$set(echo = TRUE)
 
 First of all, we can import the data.
 
-Remove all the variables in the environment
-
 ```{r}
 rm(list=ls())
-```
-
-import csv file 
-
-```{r}
 t2<-read.csv("twitter_file_with_text.csv",fill=T, sep=",", stringsAsFactors = FALSE)
-class(t2)
 names(t2)
 ```
 
-Attach
+We can see that there are **51** variables in this dataset.
 
 ```{r}
 attach(t2)
 Size<-dim(t2)
+Size
 ```
 
-## Descriptive statistics
+There are **2491** observations.
 
-Get the class of variables in dataset.
+## Classes of variables
+
+Get the class of each variable in dataset.
 
 ```{r}
 lapply(t2, class)
 ```
 
+We are interested in numeric variables as follow:
+
+* sentiment
+* followers_count
+* statuses_count
+* friends_count
+* favourites_count
+* listed_count
+
+## Descriptive statistics
+
+### Sentiment
+
 ```{r}
 summary(sentiment)
 table(sentiment)
-#==============
-# Followers count
-#==============
+hist(sentiment, freq=F, main="Sentiment Histogram", breaks=seq(from=-12.5,to=9.5,by=1), col=c(2,3), xlab="Sentiment")
+# Add the line of density, "col" for color, "lwd" for line width
+lines(density(sentiment),col=2,lwd=3)
+
+sum(sentiment==0)/Size[1]
+```
+
+There are **20** level of sentiment and most of them are **neutral** (78.28%).
+
+### Followers count
+
+```{r}
 summary(followers_count)
-summary(statuses_count)
-summary(friends_count)
-summary(favourites_count)
-summary(listed_count)
+quantile(followers_count)
+```
+
+We can find that the range of follower_count is really large. Thus we can analyze the logrithmic value of follower_count.
+
+```{r}
+followers_count2<-log(followers_count[followers_count!=0])
+summary(followers_count2)
+quantile(followers_count2)
+```
+
+The result is better. Then we can use the excellent fitdistrplus package which offers some nice functions for distribution fitting. We will use the functiondescdist to gain some ideas about possible candidate distributions.
+
+```{r}
+#install.packages("fitdistrplus")
+library(fitdistrplus)
+#install.packages("logspline")
+library(logspline)
+descdist(followers_count2, discrete = FALSE)
+```
+
+
+```{r}
+hist(followers_count2, freq=F, main="Sentiment Histogram", breaks=seq(from=0,to=15,by=1), col=c(2,3), xlab="log(#Follower)")
+# Add the line of density, "col" for color, "lwd" for line width
+lines(density(followers_count2),col=2,lwd=3)
+
+fit.norm <- fitdist(followers_count2, "norm")
+plot(fit.norm)
 ```
 
 Percentage of followers number that exceeds 1000
@@ -67,6 +109,17 @@ Percentage of followers number that exceeds 5000
 ```{r}
 sum(followers_count>5000)/Size[1]
 ```
+
+## Statuses Count
+
+```{r}
+summary(statuses_count)
+summary(friends_count)
+summary(favourites_count)
+summary(listed_count)
+```
+
+
 
 ```{r}
 sum(lang=="en")/Size[1]
@@ -92,47 +145,18 @@ library(ggmap)
 #sessionInfo()
 ```
 
-Set the number of points that we want to get geoinfo.
+Read the georaphical data from `geocoded.csv`.
 
 ```{r}
-Num = 10
+geocoded<-read.csv("geocoded.csv",fill=T, sep=",", stringsAsFactors = FALSE)
 ```
+
+### Plot Map
 
 ```{r}
-# Initialize the data frame
-lon <- vector(mode="numeric", length=Num)
-lat <- vector(mode="numeric", length=Num)
-geoAddress <- vector(mode="character", length=Num)
-# Loop through the addresses to get the latitude and longitude of each address and add it to the
-# origAddress data frame in new columns lat and lon
-#for(i in 1:Num)
-for(i in 1:Num)
-{
-  result <- tryCatch(geocode(time_zone[i], output = "latlona", source = "google"),
-                     warning = function(w) data.frame(lon = NA, lat = NA, address = NA))
-  lon[i] <- as.numeric(result[1])
-  lat[i] <- as.numeric(result[2])
-  geoAddress[i] <- as.character(result[3])
-}
-
-geocoded <- data.frame(lon, lat, geoAddress)
-```
-
-
-### Save geographical data
-
-```
-# Write a CSV file containing origAddress to the working directory
-write.csv(geocoded, "geocoded.csv", row.names=FALSE)
-```
-
-## Plot Map
-
-```{r}
-
 #install.packages("rworldmap")
 library(rworldmap)
 newmap <- getMap(resolution = "low")
-plot(newmap, xlim = c(-20, 59), ylim = c(35, 71), asp = 1)
+plot(newmap, asp = 1)
 points(geocoded$lon, geocoded$lat, col = "red", cex = .6)
 ```
