@@ -1,0 +1,138 @@
+---
+title: "SentiMap"
+author: "HU WEI"
+date: "1 March 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Import Data
+
+First of all, we can import the data.
+
+Remove all the variables in the environment
+
+```{r}
+rm(list=ls())
+```
+
+import csv file 
+
+```{r}
+t2<-read.csv("twitter_file_with_text.csv",fill=T, sep=",", stringsAsFactors = FALSE)
+class(t2)
+names(t2)
+```
+
+Attach
+
+```{r}
+attach(t2)
+Size<-dim(t2)
+```
+
+## Descriptive statistics
+
+Get the class of variables in dataset.
+
+```{r}
+lapply(t2, class)
+```
+
+```{r}
+summary(sentiment)
+table(sentiment)
+#==============
+# Followers count
+#==============
+summary(followers_count)
+summary(statuses_count)
+summary(friends_count)
+summary(favourites_count)
+summary(listed_count)
+```
+
+Percentage of followers number that exceeds 1000
+
+```{r}
+sum(followers_count>1000)/Size[1]
+```
+
+Percentage of followers number that exceeds 5000
+
+```{r}
+sum(followers_count>5000)/Size[1]
+```
+
+```{r}
+sum(lang=="en")/Size[1]
+
+sum(geo_enabled == "True")/Size[1]
+
+sum(location[lang=="en"]=="")/Size[1]
+```
+
+
+## Time Zone
+
+### Get geographical data
+
+```{r}
+# Check version of R, becasue ggmap require R version higher than 3.4.3
+#R.Version()
+#install.packages("ggmap")
+library(ggmap)
+#install.packages("tidyverse")
+#library(tidyverse)
+# Check the version info of ggmap
+#sessionInfo()
+```
+
+Set the number of points that we want to get geoinfo.
+
+```{r}
+Num = 10
+```
+
+```{r}
+# Initialize the data frame
+lon <- vector(mode="numeric", length=Num)
+lat <- vector(mode="numeric", length=Num)
+geoAddress <- vector(mode="character", length=Num)
+# Loop through the addresses to get the latitude and longitude of each address and add it to the
+# origAddress data frame in new columns lat and lon
+#for(i in 1:Num)
+for(i in 1:Num)
+{
+  result <- tryCatch(geocode(time_zone[i], output = "latlona", source = "google"),
+                     warning = function(w) data.frame(lon = NA, lat = NA, address = NA))
+  lon[i] <- as.numeric(result[1])
+  lat[i] <- as.numeric(result[2])
+  geoAddress[i] <- as.character(result[3])
+}
+
+geocoded <- data.frame(lon, lat, geoAddress)
+```
+
+
+### Save geographical data
+
+```
+# Write a CSV file containing origAddress to the working directory
+write.csv(geocoded, "geocoded.csv", row.names=FALSE)
+```
+
+## Plot Map
+
+```{r}
+
+#install.packages("rworldmap")
+library(rworldmap)
+newmap <- getMap(resolution = "low")
+plot(newmap, xlim = c(-20, 59), ylim = c(35, 71), asp = 1)
+points(geocoded$lon, geocoded$lat, col = "red", cex = .6)
+```
