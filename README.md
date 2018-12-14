@@ -4,5 +4,7 @@ We explore the Twitter textual data and try to visualize the data (i.e. using `g
 
 Details about the data can be found in `Descriptive/SentiMap.pdf`.
 
+Sentiment Map:
+
 ![Sentiment Map](/Descriptive/geoplot.jpeg)
 
